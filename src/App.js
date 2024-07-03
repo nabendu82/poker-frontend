@@ -41,7 +41,8 @@ const App = () => {
 
     const handleSubmit = async () => {
         try {
-            const response = await axios.post('http://localhost:8000/api/game', { players: players.map(player => player.rolls) });
+            // const response = await axios.post('http://localhost:8000/api/game', { players: players.map(player => player.rolls) });
+            const response = await axios.post('https://poker-backend-kpfw.onrender.com/api/game', { players: players.map(player => player.rolls) });
             setWinner(response.data.result);
         } catch (error) {
             console.error('Error submitting game data:', error);
