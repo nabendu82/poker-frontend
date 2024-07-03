@@ -1,70 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
 const App = () => {
-  const [players, setPlayers] = useState([{ rolls: [], count: 0 }]);
-  const [result, setResult] = useState('');
-  const [gameFinished, setGameFinished] = useState(false);
+    const [players, setPlayers] = useState([
+        { rolls: [], isRolling: false },
+        { rolls: [], isRolling: false },
+        { rolls: [], isRolling: false }
+    ]);
 
-  const handleAddPlayer = () => {
-    setPlayers([...players, { rolls: [], count: 0 }]);
-  };
+    const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
+    const [winner, setWinner] = useState('');
 
-  const handleRoll = (index) => {
-    if (players[index].count < 5) {
-      const newPlayers = [...players];
-      const roll = Math.floor(Math.random() * 6) + 1;
-      newPlayers[index].rolls.push(roll);
-      newPlayers[index].count += 1;
-      setPlayers(newPlayers);
-    }
-  };
+    useEffect(() => {
+        const allPlayersRolled = players.every(player => player.rolls.length === 5);
+        setIsSubmitEnabled(allPlayersRolled);
+    }, [players]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formattedPlayers = players.map(player => player.rolls);
-    const response = await axios.post('http://localhost:8000/api/game', { players: formattedPlayers });
-    setResult(response.data.result);
-    setGameFinished(true);
-  };
+    const rollDice = (playerIndex) => {
+        setPlayers(players.map((player, index) => {
+            if (index === playerIndex && player.rolls.length < 5) {
+                player.isRolling = true;
+            }
+            return player;
+        }));
 
-  const handleReset = () => {
-    setPlayers([{ rolls: [], count: 0 }]);
-    setResult('');
-    setGameFinished(false);
-  };
+        setTimeout(() => {
+            setPlayers(players.map((player, index) => {
+                if (index === playerIndex && player.rolls.length < 5) {
+                    const newRoll = Math.floor(Math.random() * 6) + 1;
+                    player.rolls = [...player.rolls, newRoll];
+                    player.isRolling = false;
+                }
+                return player;
+            }));
+        }, 500);
+    };
 
-  return (
-    <div className="App">
-      <h1>Poker Dice Game</h1>
-      <form onSubmit={handleSubmit}>
-        {players.map((player, index) => (
-          <div key={index} className="player">
-            <label>Player {index + 1} Rolls:</label>
-            <input
-              type="text"
-              value={player.rolls.join(', ')}
-              readOnly
-            />
-            <button
-              type="button"
-              onClick={() => handleRoll(index)}
-              disabled={player.count >= 5}
-            >
-              Roll
-            </button>
-          </div>
-        ))}
-        <div className="buttons">
-          <button type="button" onClick={handleAddPlayer}>Add Player</button>
-          <button type="submit" disabled={players.some(player => player.count < 5)}>Submit</button>
-          <button type="button" onClick={handleReset} disabled={!gameFinished}>Reset</button>
+    const handleSubmit = async () => {
+        try {
+            const response = await axios.post('http://localhost:8000/api/game', { players: players.map(player => player.rolls) });
+            setWinner(response.data.result);
+        } catch (error) {
+            console.error('Error submitting game data:', error);
+        }
+    };
+
+    const handleReset = () => {
+        setPlayers(players.map(() => ({ rolls: [], isRolling: false })));
+        setWinner('');
+        setIsSubmitEnabled(false);
+    };
+
+    return (
+        <div className="game">
+            <h1 style={{ color: 'purple' }}>Poker Dice Game</h1>
+            {players.map((player, index) => (
+                <div key={index} className="player">
+                    <h2>Player {index + 1}</h2>
+                    <div>
+                        {player.rolls.map((roll, rollIndex) => (
+                            <span key={rollIndex} className="roll-dice">{roll}</span>
+                        ))}
+                        {player.isRolling && <span className="roll-dice rolling">🎲</span>}
+                    </div>
+                    <button
+                        onClick={() => rollDice(index)}
+                        disabled={player.rolls.length >= 5 || isSubmitEnabled}
+                    >
+                        Roll
+                    </button>
+                </div>
+            ))}
+            <button onClick={handleSubmit} disabled={!isSubmitEnabled}>Submit</button>
+            <button onClick={handleReset} disabled={winner === ''}>Reset</button>
+            {winner && <h2>{winner}</h2>}
         </div>
-      </form>
-      {result && <h2>{result}</h2>}
-    </div>
-  );
-}
+    );
+};
 
 export default App;
