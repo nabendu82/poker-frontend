@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import RulesModal from './RulesModal';
 import './App.css';
 
 const App = () => {
@@ -11,6 +12,7 @@ const App = () => {
 
     const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
     const [winner, setWinner] = useState('');
+    const [showRules, setShowRules] = useState(false);
 
     useEffect(() => {
         const allPlayersRolled = players.every(player => player.rolls.length === 5);
@@ -52,9 +54,14 @@ const App = () => {
         setIsSubmitEnabled(false);
     };
 
+    const toggleRules = () => setShowRules(!showRules);
+
     return (
         <div className="game">
-            <h1 style={{ color: 'purple' }}>Poker Dice Game</h1>
+            <div className='header'>
+              <h1>Poker Dice Game</h1>
+              <button className="info-button" onClick={toggleRules}>i</button>
+            </div>
             {players.map((player, index) => (
                 <div key={index} className="player">
                     <h2>Player {index + 1}</h2>
@@ -75,6 +82,7 @@ const App = () => {
             <button onClick={handleSubmit} disabled={!isSubmitEnabled}>Submit</button>
             <button onClick={handleReset} disabled={winner === ''}>Reset</button>
             {winner && <h2>{winner}</h2>}
+            <RulesModal show={showRules} handleClose={toggleRules} />
         </div>
     );
 };
